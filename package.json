@@ -1,0 +1,34 @@
+{
+  "name": "@hathora/server-sdk",
+  "version": "0.0.3",
+  "main": "lib/protocol.js",
+  "types": "lib/protocol.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "author": "Harsh Pandey",
+  "license": "MIT",
+  "homepage": "https://github.com/hathora/server-sdk-ts#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hathora/server-sdk-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hathora/server-sdk-ts/issues"
+  },
+  "keywords": [
+    "hathora",
+    "protocol",
+    "server",
+    "sdk",
+    "multiplayer",
+    "networking"
+  ],
+  "dependencies": {
+    "bin-serde": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.3",
+    "typescript": "^4.7.4"
+  }
+}
