@@ -27,13 +27,26 @@ function readData(socket: net.Socket, onData: (data: Buffer) => void) {
       if (buf.length < 4 + bufLen) {
         return;
       }
-      onData(buf.slice(4, 4 + bufLen));
-      buf = buf.slice(4 + bufLen);
+      onData(buf.subarray(4, 4 + bufLen));
+      buf = buf.subarray(4 + bufLen);
     }
   });
 }
 
-export function register(coordinatorHost: string, appSecret: string, store: Store): Promise<CoordinatorClient> {
+export type AuthInfo = {
+  anonymous?: { separator: string };
+  nickname?: {};
+  google?: { clientId: string };
+  email?: { secretApiKey: string };
+};
+
+export function register(
+  coordinatorHost: string,
+  appSecret: string,
+  storeId: string,
+  authInfo: AuthInfo,
+  store: Store
+): Promise<CoordinatorClient> {
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
     let pingTimer: NodeJS.Timer;
@@ -41,11 +54,9 @@ export function register(coordinatorHost: string, appSecret: string, store: Stor
     socket.on("connect", () => {
       socket.write(
         JSON.stringify({
-          appSecret: appSecret,
-          storeRegion: Math.random().toString(),
-          authInfo: {
-            anonymous: { separator: "-" },
-          },
+          appSecret,
+          storeId,
+          authInfo,
         })
       );
       const appId = createHash("sha256").update(appSecret).digest("hex");
