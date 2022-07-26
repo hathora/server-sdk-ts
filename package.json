@@ -1,6 +1,6 @@
 {
   "name": "@hathora/server-sdk",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "main": "lib/protocol.js",
   "types": "lib/protocol.d.ts",
   "scripts": {
