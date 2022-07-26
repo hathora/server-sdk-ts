@@ -1,6 +1,7 @@
 import net from "net";
-import { Reader, Writer } from "bin-serde";
 import { createHash } from "crypto";
+import { v4 as uuidv4 } from "uuid";
+import { Reader, Writer } from "bin-serde";
 
 const NEW_STATE = 0;
 const SUBSCRIBE_USER = 1;
@@ -40,25 +41,32 @@ export type AuthInfo = {
   email?: { secretApiKey: string };
 };
 
-export function register(
-  coordinatorHost: string,
-  appSecret: string,
-  storeId: string,
-  authInfo: AuthInfo,
-  store: Store
-): Promise<CoordinatorClient> {
+export interface Store {
+  newState(stateId: StateId, userId: UserId, data: ArrayBufferView): void;
+  subscribeUser(stateId: StateId, userId: UserId): void;
+  unsubscribeUser(stateId: StateId, userId: UserId): void;
+  unsubscribeAll(): void;
+  onMessage(stateId: StateId, userId: UserId, data: ArrayBufferView): void;
+}
+
+export type RegisterConfig = {
+  coordinatorHost?: string;
+  appSecret: string;
+  storeId?: string;
+  authInfo: AuthInfo;
+  store: Store;
+};
+
+export function register(config: RegisterConfig): Promise<CoordinatorClient> {
+  const coordinatorHost = config.coordinatorHost ?? "coordinator.hathora.dev";
+  const storeId = config.storeId ?? uuidv4();
+  const { appSecret, authInfo, store } = config;
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
     let pingTimer: NodeJS.Timer;
     socket.connect(7147, coordinatorHost);
     socket.on("connect", () => {
-      socket.write(
-        JSON.stringify({
-          appSecret,
-          storeId,
-          authInfo,
-        })
-      );
+      socket.write(JSON.stringify({ appSecret, storeId, authInfo }));
       const appId = createHash("sha256").update(appSecret).digest("hex");
       console.log(`Connected to coordinator at ${coordinatorHost} with appId ${appId}`);
       const coordinatorClient = new CoordinatorClient(socket);
@@ -98,15 +106,7 @@ export function register(
   });
 }
 
-interface Store {
-  newState(stateId: StateId, userId: UserId, data: ArrayBufferView): void;
-  subscribeUser(stateId: StateId, userId: UserId): void;
-  unsubscribeUser(stateId: StateId, userId: UserId): void;
-  unsubscribeAll(): void;
-  onMessage(stateId: StateId, userId: UserId, data: ArrayBufferView): void;
-}
-
-class CoordinatorClient {
+export class CoordinatorClient {
   constructor(private socket: net.Socket) {}
 
   public stateUpdate(stateId: StateId, userId: UserId, data: Buffer) {
