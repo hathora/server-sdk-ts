@@ -16,8 +16,10 @@ enum STORE_MESSAGES {
 
 const PING_INTERVAL_MS = 10000;
 
-type StateId = bigint;
-type UserId = string;
+export type RoomId = bigint;
+export type UserId = string;
+export type AppId = string;
+export type StoreId = string;
 
 function readData(socket: net.Socket, onData: (data: Buffer) => void) {
   let buf = Buffer.alloc(0);
@@ -42,17 +44,17 @@ export type AuthInfo = {
 };
 
 export interface Store {
-  newState(stateId: StateId, userId: UserId, data: ArrayBufferView): void;
-  subscribeUser(stateId: StateId, userId: UserId): void;
-  unsubscribeUser(stateId: StateId, userId: UserId): void;
+  newState(roomId: RoomId, userId: UserId, data: ArrayBufferView): void;
+  subscribeUser(roomId: RoomId, userId: UserId): void;
+  unsubscribeUser(roomId: RoomId, userId: UserId): void;
   unsubscribeAll(): void;
-  onMessage(stateId: StateId, userId: UserId, data: ArrayBufferView): void;
+  onMessage(roomId: RoomId, userId: UserId, data: ArrayBufferView): void;
 }
 
 export type RegisterConfig = {
   coordinatorHost?: string;
   appSecret: string;
-  storeId?: string;
+  storeId?: StoreId;
   authInfo: AuthInfo;
   store: Store;
 };
@@ -68,8 +70,7 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
     socket.on("connect", () => {
       socket.write(JSON.stringify({ appSecret, storeId, authInfo }));
       const appId = createHash("sha256").update(appSecret).digest("hex");
-      console.log(`Connected to coordinator at ${coordinatorHost} with appId ${appId}`);
-      const coordinatorClient = new CoordinatorClient(socket);
+      const coordinatorClient = new CoordinatorClient(socket, coordinatorHost, appId, storeId);
       pingTimer = setInterval(() => coordinatorClient.ping(), PING_INTERVAL_MS);
       resolve(coordinatorClient);
     });
@@ -107,28 +108,28 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
 }
 
 export class CoordinatorClient {
-  constructor(private socket: net.Socket) {}
+  constructor(private socket: net.Socket, public host: string, public appId: AppId, public storeId: StoreId) {}
 
-  public stateUpdate(stateId: StateId, userId: UserId, data: Buffer) {
+  public stateUpdate(roomId: RoomId, userId: UserId, data: Buffer) {
     const userIdBuf = new Writer().writeString(userId).toBuffer();
     this.socket.write(
       new Writer()
         .writeUInt32(9 + userIdBuf.length + data.length)
         .writeUInt8(STORE_MESSAGES.STATE_UPDATE)
-        .writeUInt64(stateId)
+        .writeUInt64(roomId)
         .writeBuffer(userIdBuf)
         .writeBuffer(data)
         .toBuffer()
     );
   }
 
-  public stateNotFound(stateId: StateId, userId: UserId) {
+  public stateNotFound(roomId: RoomId, userId: UserId) {
     const userIdBuf = new Writer().writeString(userId).toBuffer();
     this.socket.write(
       new Writer()
         .writeUInt32(9 + userIdBuf.length)
         .writeUInt8(STORE_MESSAGES.STATE_NOT_FOUND)
-        .writeUInt64(stateId)
+        .writeUInt64(roomId)
         .writeBuffer(userIdBuf)
         .toBuffer()
     );
