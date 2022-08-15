@@ -71,6 +71,9 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
       socket.write(JSON.stringify({ appSecret, storeId, authInfo }));
       const appId = createHash("sha256").update(appSecret).digest("hex");
       const coordinatorClient = new CoordinatorClient(socket, coordinatorHost, appId, storeId);
+      if (pingTimer !== undefined) {
+        console.log(`Reconnected to coordinator`);
+      }
       pingTimer = setInterval(() => coordinatorClient.ping(), PING_INTERVAL_MS);
       resolve(coordinatorClient);
     });
