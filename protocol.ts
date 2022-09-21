@@ -9,8 +9,8 @@ const UNSUBSCRIBE_USER = 2;
 const MESSAGE = 3;
 
 enum STORE_MESSAGES {
-  STATE_UPDATE = 0,
-  STATE_NOT_FOUND = 1,
+  SEND_MESSAGE = 0,
+  CLOSE_CONNECTION = 1,
   PING = 2,
 }
 
@@ -74,7 +74,7 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
       if (pingTimer !== undefined) {
         console.log(`Reconnected to coordinator`);
       }
-      pingTimer = setInterval(() => coordinatorClient.ping(), PING_INTERVAL_MS);
+      pingTimer = setInterval(() => coordinatorClient._ping(), PING_INTERVAL_MS);
       resolve(coordinatorClient);
     });
     socket.on("error", (err) => {
@@ -113,12 +113,12 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
 export class CoordinatorClient {
   constructor(private socket: net.Socket, public host: string, public appId: AppId, public storeId: StoreId) {}
 
-  public stateUpdate(roomId: RoomId, userId: UserId, data: Buffer) {
+  public sendMessage(roomId: RoomId, userId: UserId, data: Buffer) {
     const userIdBuf = new Writer().writeString(userId).toBuffer();
     this.socket.write(
       new Writer()
         .writeUInt32(9 + userIdBuf.length + data.length)
-        .writeUInt8(STORE_MESSAGES.STATE_UPDATE)
+        .writeUInt8(STORE_MESSAGES.SEND_MESSAGE)
         .writeUInt64(roomId)
         .writeBuffer(userIdBuf)
         .writeBuffer(data)
@@ -126,19 +126,19 @@ export class CoordinatorClient {
     );
   }
 
-  public stateNotFound(roomId: RoomId, userId: UserId) {
+  public closeConnection(roomId: RoomId, userId: UserId, error: string) {
     const userIdBuf = new Writer().writeString(userId).toBuffer();
     this.socket.write(
       new Writer()
         .writeUInt32(9 + userIdBuf.length)
-        .writeUInt8(STORE_MESSAGES.STATE_NOT_FOUND)
+        .writeUInt8(STORE_MESSAGES.CLOSE_CONNECTION)
         .writeUInt64(roomId)
         .writeBuffer(userIdBuf)
         .toBuffer()
     );
   }
 
-  public ping() {
+  _ping() {
     this.socket.write(new Writer().writeUInt32(1).writeUInt8(STORE_MESSAGES.PING).toBuffer());
   }
 }
