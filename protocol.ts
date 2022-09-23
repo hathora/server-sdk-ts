@@ -66,7 +66,7 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
     let pingTimer: NodeJS.Timer;
-    socket.connect(7147, coordinatorHost);
+    socket.connect(7147, coordinatorHost).setKeepAlive(true);
     socket.on("connect", () => {
       socket.write(JSON.stringify({ appSecret, storeId, authInfo }));
       const appId = createHash("sha256").update(appSecret).digest("hex");
