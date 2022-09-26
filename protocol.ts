@@ -75,7 +75,11 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
         console.log(`Reconnected to coordinator`);
       }
       pingTimer = setInterval(() => coordinatorClient._ping(), PING_INTERVAL_MS);
-      resolve(coordinatorClient);
+      socket.on("data", (data) => {
+        const response = data.toString();
+        console.log("Connected to coordinator: ", response);
+        resolve(coordinatorClient);
+      });
     });
     socket.on("error", (err) => {
       console.error("Coordinator connection error", err);
