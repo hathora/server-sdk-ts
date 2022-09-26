@@ -1,5 +1,4 @@
 import net from "net";
-import { createHash } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { Reader, Writer } from "bin-serde";
 
@@ -53,6 +52,7 @@ export interface Store {
 export type RegisterConfig = {
   coordinatorHost?: string;
   appSecret: string;
+  appId: AppId;
   storeId?: StoreId;
   authInfo: AuthInfo;
   store: Store;
@@ -61,7 +61,7 @@ export type RegisterConfig = {
 export function register(config: RegisterConfig): Promise<CoordinatorClient> {
   const coordinatorHost = config.coordinatorHost ?? "coordinator.hathora.dev";
   const storeId = config.storeId ?? uuidv4();
-  const { appSecret, authInfo, store } = config;
+  const { appId, appSecret, authInfo, store } = config;
   const subscribers: Map<RoomId, Set<UserId>> = new Map();
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
@@ -69,7 +69,6 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
     socket.connect(7147, coordinatorHost).setKeepAlive(true);
     socket.on("connect", () => {
       socket.write(JSON.stringify({ appSecret, storeId, authInfo }));
-      const appId = createHash("sha256").update(appSecret).digest("hex");
       const coordinatorClient = new CoordinatorClient(socket, coordinatorHost, appId, storeId, subscribers);
       if (pingTimer !== undefined) {
         console.log(`Reconnected to coordinator`);
@@ -132,7 +131,7 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
         ];
         store.onMessage(roomId, userId, data);
       } else {
-        throw new Error("Unknown type: " + type);
+        console.error("Unknown type: " + type);
       }
     });
   });
