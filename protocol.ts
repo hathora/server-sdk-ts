@@ -1,5 +1,4 @@
 import net from "net";
-import { createHash } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { Reader, Writer } from "bin-serde";
 
@@ -136,7 +135,7 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
         ];
         store.onMessage(roomId, userId, data);
       } else {
-        throw new Error("Unknown type: " + type);
+        console.error("Unknown type: " + type);
       }
     });
   });
