@@ -67,19 +67,7 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
     const socket = new net.Socket();
     let pingTimer: NodeJS.Timer;
     socket.connect(7147, coordinatorHost).setKeepAlive(true);
-    socket.on("connect", () => {
-      socket.write(JSON.stringify({ appSecret, storeId, authInfo }));
-      const coordinatorClient = new CoordinatorClient(socket, coordinatorHost, appId, storeId, subscribers);
-      if (pingTimer !== undefined) {
-        console.log(`Reconnected to coordinator`);
-      }
-      pingTimer = setInterval(() => coordinatorClient._ping(), PING_INTERVAL_MS);
-      socket.on("data", (data) => {
-        const response = data.toString();
-        console.log("Connected to coordinator: ", response);
-        resolve(coordinatorClient);
-      });
-    });
+    socket.on("connect", onConnect);
     socket.on("error", (err) => {
       console.error("Coordinator connection error", err);
       if (pingTimer !== undefined) {
@@ -138,6 +126,22 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
         console.error("Unknown type: " + type);
       }
     });
+
+    const onConnect = () => {
+      socket.write(JSON.stringify({ appSecret, storeId, authInfo }));
+      const coordinatorClient = new CoordinatorClient(socket, coordinatorHost, appId, storeId, subscribers);
+      if (pingTimer !== undefined) {
+        console.log(`Reconnected to coordinator`);
+      }
+      pingTimer = setInterval(() => coordinatorClient._ping(), PING_INTERVAL_MS);
+      const onConnectHandler = (data: any) => {
+        const response = data.toString();
+        console.log("Connected to coordinator: ", response);
+        socket.off("data", onConnectHandler);
+        resolve(coordinatorClient);
+      };
+      socket.on("data", onConnectHandler);
+    };
   });
 }
 
