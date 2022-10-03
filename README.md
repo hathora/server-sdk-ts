@@ -14,7 +14,8 @@ Registers backend with the Hathora Coordinator.
 export type RegisterConfig = {
   coordinatorHost?: string;
   appSecret: string;
-  storeId?: string;
+  appId: AppId;
+  storeId?: StoreId;
   authInfo: AuthInfo;
   store: Store;
 };
@@ -29,6 +30,10 @@ Defaults to coordinator.hathora.dev
 ### appSecret
 
 A secret string value to securely identify the backend
+
+### appId
+
+A public id to identity the app
 
 ### storeId
 
@@ -55,11 +60,10 @@ A class or object conforming to the `Store` interface
 
 ```ts
 interface Store {
-  newState(roomId: StateId, userId: UserId, data: ArrayBufferView): void;
-  subscribeUser(roomId: StateId, userId: UserId): void;
-  unsubscribeUser(roomId: StateId, userId: UserId): void;
-  unsubscribeAll(): void;
-  onMessage(roomId: StateId, userId: UserId, data: ArrayBufferView): void;
+  newState(roomId: RoomId, userId: UserId, data: ArrayBufferView): void;
+  subscribeUser(roomId: RoomId, userId: UserId): void;
+  unsubscribeUser(roomId: RoomId, userId: UserId): void;
+  onMessage(roomId: RoomId, userId: UserId, data: ArrayBufferView): void;
 }
 ```
 
@@ -67,8 +71,8 @@ interface Store {
 
 ```ts
 interface CoordinatorClient {
-  stateUpdate(roomId: StateId, userId: UserId, data: Buffer);
-  stateNotFound(roomId: StateId, userId: UserId);
+  sendMessage(roomId: StateId, userId: UserId, data: Buffer);
+  closeConnection(roomId: StateId, userId: UserId, error: string);
   ping();
 }
 ```
@@ -78,6 +82,7 @@ interface CoordinatorClient {
 ```ts
 const coordinator = await register({
   appSecret: process.env.APP_SECRET!,
+  appId: process.env.APP_ID!,
   authInfo: { anonymous: { separator: "-" } },
   store: {
     newState(roomId, userId, data) {
@@ -88,9 +93,6 @@ const coordinator = await register({
     },
     unsubscribeUser(roomId, userId) {
       console.log("unsubscribeUser", roomId.toString(36), userId);
-    },
-    unsubscribeAll() {
-      console.log("unsubscribeAll");
     },
     onMessage(roomId, userId, data) {
       const dataBuf = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
