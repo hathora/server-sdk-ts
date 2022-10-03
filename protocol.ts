@@ -159,6 +159,12 @@ export class CoordinatorClient {
     );
   }
 
+  public broadcastMessage(roomId: RoomId, data: Buffer): void {
+    this.getSubscribers(roomId).forEach((userId) => {
+      this.sendMessage(roomId, userId, data);
+    });
+  }
+
   public closeConnection(roomId: RoomId, userId: UserId, error: string): void {
     const userIdBuf = new Writer().writeString(userId).toBuffer();
     this.socket.write(
