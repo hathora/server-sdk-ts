@@ -146,7 +146,7 @@ export class CoordinatorClient {
     private subscribers: Map<RoomId, Set<UserId>>
   ) {}
 
-  public sendMessage(roomId: RoomId, userId: UserId, data: Buffer) {
+  public sendMessage(roomId: RoomId, userId: UserId, data: Buffer): void {
     const userIdBuf = new Writer().writeString(userId).toBuffer();
     this.socket.write(
       new Writer()
@@ -159,7 +159,7 @@ export class CoordinatorClient {
     );
   }
 
-  public closeConnection(roomId: RoomId, userId: UserId, error: string) {
+  public closeConnection(roomId: RoomId, userId: UserId, error: string): void {
     const userIdBuf = new Writer().writeString(userId).toBuffer();
     this.socket.write(
       new Writer()
@@ -171,7 +171,7 @@ export class CoordinatorClient {
     );
   }
 
-  public getSubscribers(roomId: RoomId) {
+  public getSubscribers(roomId: RoomId): UserId[] {
     const subs = this.subscribers.get(roomId);
     if (subs === undefined) {
       return [];

@@ -71,8 +71,9 @@ interface Store {
 
 ```ts
 interface CoordinatorClient {
-  sendMessage(roomId: StateId, userId: UserId, data: Buffer);
-  closeConnection(roomId: StateId, userId: UserId, error: string);
+  sendMessage(roomId: StateId, userId: UserId, data: Buffer): void;
+  closeConnection(roomId: StateId, userId: UserId, error: string): void;
+  getSubscribers(roomId: RoomId): UserId[];
   ping();
 }
 ```
