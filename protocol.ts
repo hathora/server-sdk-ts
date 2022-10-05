@@ -68,7 +68,7 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
     let pingTimer: NodeJS.Timer;
     socket.connect(7147, coordinatorHost).setKeepAlive(true);
     socket.on("connect", () => {
-      socket.write(JSON.stringify({ appSecret, storeId, authInfo }));
+      socket.write(JSON.stringify({ appId, appSecret, storeId, authInfo }));
       const coordinatorClient = new CoordinatorClient(socket, coordinatorHost, appId, storeId, subscribers);
       if (pingTimer !== undefined) {
         console.log(`Reconnected to coordinator`);
