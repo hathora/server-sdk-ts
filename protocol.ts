@@ -52,7 +52,6 @@ export interface Store {
 export type RegisterConfig = {
   coordinatorHost?: string;
   appSecret: string;
-  appId: AppId;
   storeId?: StoreId;
   authInfo: AuthInfo;
   store: Store;
@@ -61,15 +60,15 @@ export type RegisterConfig = {
 export function register(config: RegisterConfig): Promise<CoordinatorClient> {
   const coordinatorHost = config.coordinatorHost ?? "coordinator.hathora.dev";
   const storeId = config.storeId ?? uuidv4();
-  const { appId, appSecret, authInfo, store } = config;
+  const { appSecret, authInfo, store } = config;
   const subscribers: Map<RoomId, Set<UserId>> = new Map();
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
     let pingTimer: NodeJS.Timer;
     socket.connect(7147, coordinatorHost).setKeepAlive(true);
     socket.on("connect", () => {
-      socket.write(JSON.stringify({ appId, appSecret, storeId, authInfo }));
-      const coordinatorClient = new CoordinatorClient(socket, coordinatorHost, appId, storeId, subscribers);
+      socket.write(JSON.stringify({ appSecret, storeId, authInfo }));
+      const coordinatorClient = new CoordinatorClient(socket, coordinatorHost, storeId, subscribers);
       if (pingTimer !== undefined) {
         console.log(`Reconnected to coordinator`);
       }
@@ -141,7 +140,6 @@ export class CoordinatorClient {
   constructor(
     private socket: net.Socket,
     public host: string,
-    public appId: AppId,
     public storeId: StoreId,
     private subscribers: Map<RoomId, Set<UserId>>
   ) {}
