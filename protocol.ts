@@ -6,7 +6,6 @@ const NEW_STATE = 0;
 const SUBSCRIBE_USER = 1;
 const UNSUBSCRIBE_USER = 2;
 const MESSAGE = 3;
-const CONNECTED = 4;
 
 enum STORE_MESSAGES {
   SEND_MESSAGE = 0,
@@ -53,6 +52,7 @@ export interface Store {
 export type RegisterConfig = {
   coordinatorHost?: string;
   appSecret: string;
+  appId: AppId;
   storeId?: StoreId;
   authInfo: AuthInfo;
   store: Store;
@@ -61,14 +61,20 @@ export type RegisterConfig = {
 export function register(config: RegisterConfig): Promise<CoordinatorClient> {
   const coordinatorHost = config.coordinatorHost ?? "coordinator.hathora.dev";
   const storeId = config.storeId ?? uuidv4();
-  const { appSecret, authInfo, store } = config;
+  const { appId, appSecret, authInfo, store } = config;
   const subscribers: Map<RoomId, Set<UserId>> = new Map();
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
     let pingTimer: NodeJS.Timer;
     socket.connect(7147, coordinatorHost).setKeepAlive(true);
     socket.on("connect", () => {
-      socket.write(JSON.stringify({ appSecret, storeId, authInfo }));
+      socket.write(JSON.stringify({ appId, appSecret, storeId, authInfo }));
+      const coordinatorClient = new CoordinatorClient(socket, coordinatorHost, appId, storeId, subscribers);
+      if (pingTimer !== undefined) {
+        console.log(`Reconnected to coordinator`);
+      }
+      pingTimer = setInterval(() => coordinatorClient._ping(), PING_INTERVAL_MS);
+      resolve(coordinatorClient);
     });
     socket.on("error", (err) => {
       console.error("Coordinator connection error", err);
@@ -124,14 +130,6 @@ export function register(config: RegisterConfig): Promise<CoordinatorClient> {
           reader.readBuffer(reader.remaining()),
         ];
         store.onMessage(roomId, userId, data);
-      } else if (type === CONNECTED) {
-        const appId = reader.readString();
-        const coordinatorClient = new CoordinatorClient(socket, coordinatorHost, appId, storeId, subscribers);
-        if (pingTimer !== undefined) {
-          console.log(`Reconnected to coordinator`);
-        }
-        pingTimer = setInterval(() => coordinatorClient._ping(), PING_INTERVAL_MS);
-        resolve(coordinatorClient);
       } else {
         console.error("Unknown type: " + type);
       }
