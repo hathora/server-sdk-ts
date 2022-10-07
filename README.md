@@ -14,7 +14,6 @@ Registers backend with the Hathora Coordinator.
 export type RegisterConfig = {
   coordinatorHost?: string;
   appSecret: string;
-  appId: AppId;
   storeId?: StoreId;
   authInfo: AuthInfo;
   store: Store;
@@ -30,10 +29,6 @@ Defaults to coordinator.hathora.dev
 ### appSecret
 
 A secret string value to securely identify the backend
-
-### appId
-
-A public id to identity the app
 
 ### storeId
 
@@ -84,7 +79,6 @@ interface CoordinatorClient {
 ```ts
 const coordinator = await register({
   appSecret: process.env.APP_SECRET!,
-  appId: process.env.APP_ID!,
   authInfo: { anonymous: { separator: "-" } },
   store: {
     newState(roomId, userId, data) {
